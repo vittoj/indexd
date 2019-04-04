@@ -87,7 +87,7 @@ function tip (rpc, done) {
 }
 
 function transaction (rpc, txId, next, forgiving) {
-  rpcd(rpc, 'getrawtransaction', [txId, true], (err, tx) => {
+  rpcd(rpc, 'getrawtransaction', [txId, 1], (err, tx) => {
     if (err) {
       if (forgiving && /No such mempool or blockchain transaction/.test(err)) return next()
       return next(err)
