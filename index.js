@@ -27,7 +27,8 @@ function Indexd (db, rpc) {
     tx: new TxIndex(),
     txin: new TxinIndex(),
     txo: new TxoIndex()
-  }
+  },
+  this.refreshingMempool = false
 }
 
 Indexd.prototype.tips = function (callback) {
@@ -234,10 +235,14 @@ Indexd.prototype.tryResync = function (callback) {
 
 Indexd.prototype.tryResyncMempool = function (callback) {
   debug('try resync mempool')
+  if (this.syncingMempool) return
+  this.syncingMempool = true
+
   let self = this
   function fin(err) {
     if (err) return callback(err)
     self.refreshMempool(callback)
+    self.syncingMempool = false
   }
 
   rpcUtil.mempool(this.rpc, (err, txIds) => {
