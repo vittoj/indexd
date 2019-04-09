@@ -228,8 +228,7 @@ Indexd.prototype.tryResync = function (callback) {
 
   this.__resync((err, updated) => {
     if (err) return fin(err)
-    if (updated) return this.tryResyncMempool(fin)
-    fin()
+    return this.tryResyncMempool(fin)
   })
 }
 
