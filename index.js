@@ -228,7 +228,7 @@ Indexd.prototype.tryResync = function (callback) {
 
   this.__resync((err, updated) => {
     if (err) return fin(err)
-    return this.tryResyncMempool(fin)
+    this.tryResyncMempool(fin)
   })
 }
 
@@ -240,8 +240,8 @@ Indexd.prototype.tryResyncMempool = function (callback) {
   let self = this
   function fin(err) {
     if (err) return callback(err)
-    self.refreshMempool(callback)
     self.syncingMempool = false
+    self.refreshMempool(callback)
   }
 
   rpcUtil.mempool(this.rpc, (err, txIds) => {
@@ -278,42 +278,32 @@ Indexd.prototype.notify = function (txId, callback) {
 
 Indexd.prototype.refreshMempool = function (callback) {
   debug('refresh mempool')
-  if (this.refreshingMempool) return
-  this.refreshingMempool = true
-
-  this.clear()
-  for (txId in this.mempool) {
-    for (let indexName in this.indexes) {
-      let index = this.indexes[indexName]
-
-      if (!index.mempool) continue
-      index.mempool(this.mempool[txId])
-    }
+  if (callback) {
+    this.emitter.once('refresh', callback)
   }
 
-  this.refreshingMempool = false
+  if (this.refreshingMempool === false) {
+    this.refreshingMempool === true
+    this.clear()
+    for (txId in this.mempool) {
+      for (let indexName in this.indexes) {
+        let index = this.indexes[indexName]
 
-  callback()
+        if (!index.mempool) continue
+        index.mempool(this.mempool[txId])
+      }
+    }
+    this.refreshingMempool = false
+    this.emitter.emit('refresh')
+  }
 }
 
-Indexd.prototype.checkRefresh = function (msec, callback) {
-  let self = this
-  function isRefreshing() {
-    return self.refreshingMempool
-  }
-
-  function waitfor(test, expected, msec, callback) {
-    while (test() !== expected) {
-      debug('wait for ' + test() + ' to be ' + expected)
-      setTimeout(function() {
-          waitfor(test, expected, msec, callback)
-          }, msec)
-      return
-    }
+Indexd.prototype.checkRefresh = function (callback) {
+  if (this.refreshingMempool === true) {
+    if (callback) this.emitter.once('refresh', callback)
+  } else {
     callback()
   }
-
-  waitfor(isRefreshing, false, msec, callback)
 }
 
 // QUERIES
@@ -367,7 +357,7 @@ Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callb
 // returns a list of txos { txId, vout, height, value } by { scId, heightRange, ?mempool }
 Indexd.prototype.txosByScriptRange = function (scRange, dbLimit, callback) {
   let self = this
-  this.checkRefresh(10, function () {
+  this.checkRefresh(function () {
     self.indexes.script.txosBy(self.db, scRange, dbLimit, callback)
   })
 }
