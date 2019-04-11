@@ -240,8 +240,8 @@ Indexd.prototype.tryResyncMempool = function (callback) {
   let self = this
   function fin(err) {
     if (err) return callback(err)
-    self.memsyncing = false
     self.refresh(callback)
+    self.memsyncing = false
   }
 
   rpcUtil.mempool(this.rpc, (err, txIds) => {
