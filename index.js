@@ -27,8 +27,7 @@ function Indexd (db, rpc) {
     tx: new TxIndex(),
     txin: new TxinIndex(),
     txo: new TxoIndex()
-  },
-  this.refreshing = false
+  }
 }
 
 Indexd.prototype.tips = function (callback) {
@@ -234,13 +233,17 @@ Indexd.prototype.tryResync = function (callback) {
 
 Indexd.prototype.tryResyncMempool = function (callback) {
   debug('try resync mempool')
+  if (callback) {
+    this.emitter.once('memresync', callback)
+  }
+
   if (this.memsyncing) return
   this.memsyncing = true
 
   let self = this
   function fin(err) {
-    if (err) return callback(err)
     self.refresh(callback)
+    self.emitter.emit('memresync', err)
     self.memsyncing = false
   }
 
@@ -282,25 +285,26 @@ Indexd.prototype.refresh = function (callback) {
     this.emitter.once('refresh', callback)
   }
 
-  if (this.refreshing === false) {
-    this.refreshing = true
-    this.clear()
-    for (txId in this.mempool) {
-      for (let indexName in this.indexes) {
-        let index = this.indexes[indexName]
+  if (this.refreshing) return
+  this.refreshing = true
 
-        if (!index.mempool) continue
-        index.mempool(this.mempool[txId])
-      }
+  this.clear()
+  for (txId in this.mempool) {
+    for (let indexName in this.indexes) {
+      let index = this.indexes[indexName]
+
+      if (!index.mempool) continue
+      index.mempool(this.mempool[txId])
     }
-    this.emitter.emit('refresh')
-    this.refreshing = false
   }
+
+  this.emitter.emit('refresh')
+  this.refreshing = false
 }
 
 Indexd.prototype.checkRefresh = function (callback) {
   if (this.refreshing === true) {
-    if (callback) this.emitter.once('refresh', callback)
+    this.emitter.once('refresh', callback)
   } else {
     callback()
   }
