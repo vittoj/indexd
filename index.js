@@ -28,7 +28,7 @@ function Indexd (db, rpc) {
     txin: new TxinIndex(),
     txo: new TxoIndex()
   },
-  this.refreshingMempool = false
+  this.refreshing = false
 }
 
 Indexd.prototype.tips = function (callback) {
@@ -222,8 +222,8 @@ Indexd.prototype.tryResync = function (callback) {
 
   let self = this
   function fin (err) {
-    self.syncing = false
     self.emitter.emit('resync', err)
+    self.syncing = false
   }
 
   this.__resync((err, updated) => {
@@ -234,14 +234,14 @@ Indexd.prototype.tryResync = function (callback) {
 
 Indexd.prototype.tryResyncMempool = function (callback) {
   debug('try resync mempool')
-  if (this.syncingMempool) return
-  this.syncingMempool = true
+  if (this.memsyncing) return
+  this.memsyncing = true
 
   let self = this
   function fin(err) {
     if (err) return callback(err)
-    self.syncingMempool = false
-    self.refreshMempool(callback)
+    self.memsyncing = false
+    self.refresh(callback)
   }
 
   rpcUtil.mempool(this.rpc, (err, txIds) => {
@@ -276,14 +276,14 @@ Indexd.prototype.notify = function (txId, callback) {
   })
 }
 
-Indexd.prototype.refreshMempool = function (callback) {
-  debug('refresh mempool')
+Indexd.prototype.refresh = function (callback) {
+  debug('refresh')
   if (callback) {
     this.emitter.once('refresh', callback)
   }
 
-  if (this.refreshingMempool === false) {
-    this.refreshingMempool = true
+  if (this.refreshing === false) {
+    this.refreshing = true
     this.clear()
     for (txId in this.mempool) {
       for (let indexName in this.indexes) {
@@ -293,13 +293,13 @@ Indexd.prototype.refreshMempool = function (callback) {
         index.mempool(this.mempool[txId])
       }
     }
-    this.refreshingMempool = false
     this.emitter.emit('refresh')
+    this.refreshing = false
   }
 }
 
 Indexd.prototype.checkRefresh = function (callback) {
-  if (this.refreshingMempool === true) {
+  if (this.refreshing === true) {
     if (callback) this.emitter.once('refresh', callback)
   } else {
     callback()
