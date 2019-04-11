@@ -283,7 +283,7 @@ Indexd.prototype.refreshMempool = function (callback) {
   }
 
   if (this.refreshingMempool === false) {
-    this.refreshingMempool === true
+    this.refreshingMempool = true
     this.clear()
     for (txId in this.mempool) {
       for (let indexName in this.indexes) {
