@@ -257,7 +257,7 @@ Indexd.prototype.tryResyncMempool = function (callback) {
 
 Indexd.prototype.notifyLazy = function (txId, callback) {
   rpcUtil.transaction(this.rpc, txId, (err, tx) => {
-    if (err) return callback(err)
+    if (err) return // ignore err, tx may be removed from mempool 
     this.mempool[txId] = tx
 
     callback()
@@ -288,7 +288,9 @@ Indexd.prototype.refresh = function (callback) {
   if (this.refreshing) return
   this.refreshing = true
 
+  console.time('refresh')
   this.clear()
+  console.log('mempool: ' + Object.keys(this.mempool).length + ' txs')
   for (txId in this.mempool) {
     for (let indexName in this.indexes) {
       let index = this.indexes[indexName]
@@ -297,6 +299,7 @@ Indexd.prototype.refresh = function (callback) {
       index.mempool(this.mempool[txId])
     }
   }
+  console.timeEnd('refresh')
 
   this.emitter.emit('refresh')
   this.refreshing = false
