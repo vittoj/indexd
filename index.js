@@ -227,7 +227,8 @@ Indexd.prototype.tryResync = function (callback) {
 
   this.__resync((err, updated) => {
     if (err) return fin(err)
-    this.tryResyncMempool(fin)
+    if (updated) return this.tryResyncMempool(fin)
+    fin()
   })
 }
 
@@ -240,8 +241,10 @@ Indexd.prototype.tryResyncMempool = function (callback) {
   if (this.memsyncing) return
   this.memsyncing = true
 
+  console.time('memresync')
   let self = this
   function fin(err) {
+    console.timeEnd('memresync')
     self.refresh(callback)
     self.emitter.emit('memresync', err)
     self.memsyncing = false
