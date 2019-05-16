@@ -260,7 +260,7 @@ Indexd.prototype.tryResyncMempool = function (callback) {
 
 Indexd.prototype.notifyLazy = function (txId, callback) {
   rpcUtil.transaction(this.rpc, txId, (err, tx) => {
-    if (err) return // ignore err, tx may be removed from mempool 
+    if (err) return callback()  // ignore err, tx may be removed from mempool 
     this.mempool[txId] = tx
 
     callback()
