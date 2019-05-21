@@ -239,16 +239,17 @@ Indexd.prototype.tryResyncMempool = function (callback) {
   }
 
   if (this.memsyncing) return
+  console.time('memresync')
   this.memsyncing = true
   this.mempool = {}
 
-  console.time('memresync')
   let self = this
   function fin(err) {
-    console.timeEnd('memresync')
-    self.refresh(callback)
-    self.emitter.emit('memresync', err)
-    self.memsyncing = false
+    self.refresh(function() {
+      self.emitter.emit('memresync', err)
+      self.memsyncing = false
+      console.timeEnd('memresync')
+    })
   }
 
   rpcUtil.mempool(this.rpc, (err, txIds) => {
@@ -260,7 +261,10 @@ Indexd.prototype.tryResyncMempool = function (callback) {
 
 Indexd.prototype.notifyLazy = function (txId, callback) {
   rpcUtil.transaction(this.rpc, txId, (err, tx) => {
-    if (err) return callback()  // ignore err, tx may be removed from mempool 
+    if (err) {
+      debug('transaction rpc error: ' + err)
+      return callback()  // ignore err, tx may be removed from mempool 
+    }
     this.mempool[txId] = tx
 
     callback()
@@ -292,10 +296,10 @@ Indexd.prototype.refresh = function (callback) {
   }
 
   if (this.refreshing) return
+  console.time('refresh')
   this.refreshing = true
   this.clear()
 
-  console.time('refresh')
   console.log('mempool: ' + Object.keys(this.mempool).length + ' txs')
   for (txId in this.mempool) {
     for (let indexName in this.indexes) {
@@ -305,10 +309,10 @@ Indexd.prototype.refresh = function (callback) {
       index.mempool(this.mempool[txId])
     }
   }
-  console.timeEnd('refresh')
 
   this.emitter.emit('refresh')
   this.refreshing = false
+  console.timeEnd('refresh')
 }
 
 Indexd.prototype.checkRefresh = function (callback) {
